@@ -1,0 +1,83 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # Этап 1: Сборка программы
+  RunMake:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build and Install program
+        run: |
+          cd source_code
+          make
+          make install
+          chmod +x ../usr/bin/array_calc
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-binary
+          path: usr/bin/array_calc
+          retention-days: 1
+
+  # Этап 2: Запуск Unit-тестов
+  RunTest:
+    needs: RunMake
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-binary
+          path: usr/bin/
+
+      - name: Make executable
+        run: chmod +x usr/bin/array_calc
+
+      - name: Run Unit Tests
+        run: |
+          cd cicd
+          make
+
+  # Этап 3: Сборка deb-пакета
+  RunPackage:
+    needs: RunTest
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: built-binary
+          path: usr/bin/
+
+      - name: Make executable
+        run: chmod +x usr/bin/array_calc
+
+      - name: Build Debian Package
+        run: dpkg-deb --build . array-processor-v19_1.0_amd64.deb
+
+      - name: Upload Debian Package Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-package
+          path: array-processor-v19_1.0_amd64.deb
+          retention-days: 7S
