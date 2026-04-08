@@ -1,0 +1,6 @@
+Package: array-processor-v19
+Version: 1.0
+Architecture: amd64
+Depends: g++, make, libc6
+Maintainer: Richard
+Description: Program for processing arrays X and Y (Variant 19)
